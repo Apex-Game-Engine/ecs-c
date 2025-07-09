@@ -1,0 +1,14 @@
+# Build directories
+bin/
+obj/
+
+# IDE directories
+.vscode/
+.vs/
+
+# Output and temp files
+*.o
+*.obj
+*.exe
+*.swp
+
