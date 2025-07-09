@@ -7,7 +7,11 @@
 #define _malloc(nbytes) 	(printf("[malloc] %8zu bytes\n", nbytes), calloc(nbytes, 1))
 #define _free(ptr) 			(printf("[free]\n"), free(ptr))
 
-#define debugf(fmt, ...)    (printf("[hashmap] " fmt "\n", ##__VA_ARGS__))
+#if HASHMAP_DEBUG
+#	define hashmap_debugf(fmt, ...)    (printf("[hashmap] (%s:%d) :: " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__))
+#else
+#	define hashmap_debugf(fmt, ...)
+#endif
 
 typedef struct HashmapT {
 	uint32_t key_size;
@@ -95,16 +99,20 @@ hashmap_value_ptr hashmap_emplace(hashmap_t hashmap, hashmap_key_ptr key) {
 	uint32_t ideal_index = index;
 	hashmap_key_ptr pkey; hashmap_value_ptr pvalue;
 	getkv(hashmap, index, &pkey, &pvalue);
-	debugf("try insert @ %u", index);
+	hashmap_debugf("try insert @ %u", index);
 	while (!iskeyempty(hashmap, pkey) && !iskeytombstone(hashmap, pkey)) {
+		if (hashmap->keyeq_func(pkey, key)) {
+			hashmap_debugf("found existing @ %u", index);
+			return NULL;
+		}
 		index = (index + 1) % hashmap->bucket_count;
-		debugf("try insert @ %u", index);
+		hashmap_debugf("try insert @ %u", index);
 		if (index == ideal_index) {
 			return NULL;
 		}
 		getkv(hashmap, index, &pkey, &pvalue);
 	}
-	debugf("inserted @ %u", index);
+	hashmap_debugf("inserted @ %u", index);
 	memcpy(pkey, key, hashmap->key_size);
 	return pvalue;
 }
@@ -116,12 +124,12 @@ void* hashmap_find(hashmap_t hashmap, hashmap_key_ptr key) {
 	hashmap_key_ptr pkey; hashmap_value_ptr pvalue;
 	getkv(hashmap, index, &pkey, &pvalue);
 	while (!iskeyempty(hashmap, pkey)) {
-		debugf("check key @ %u", index);
+		hashmap_debugf("check key @ %u", index);
 		if (iskeytombstone(hashmap, pkey)) {
 			continue;
 		}
 		if (hashmap->keyeq_func(pkey, key)) {
-			debugf("found key @ %u", index);
+			hashmap_debugf("found key @ %u", index);
 			return pvalue;
 		}
 		index = (index + 1) % hashmap->bucket_count;

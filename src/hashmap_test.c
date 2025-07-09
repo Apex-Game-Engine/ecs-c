@@ -3,10 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
-const uint64_t HASH64_VALUE = 0xcbf29ce484222325;
-const uint64_t HASH64_PRIME = 0x100000001b3;
-
-char static_assert__sizeof_uint64_t[(sizeof(uint64_t) == 8) ? 1 : 0];
+#define HASH64_VALUE (0xcbf29ce484222325)
+#define HASH64_PRIME (0x100000001b3)
 
 inline uint64_t hash_str_helper(const char* const str, const uint64_t value) {
 	return (str[0] == '\0') ? value : hash_str_helper(&str[1], (value ^ (uint64_t)((uint8_t)str[0])) * HASH64_PRIME);
@@ -74,6 +72,16 @@ int hashmap_test() {
 			snprintf(user.email, sizeof(user.email), "user%d@example.com", i);
 			hashmap_insert(hm, &uname, &user);
 		}
+	}
+
+	{
+		char k[64] = "athang213";
+		User v = (User) {
+			.age = 26,
+			.dob = (Date) { 21, 03, 1999 },
+		};
+		strncpy(v.email, "athang213@gmail.com", sizeof(Email)-1);
+		hashmap_insert(hm, &k, &v);
 	}
 
 	{
