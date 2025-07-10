@@ -143,8 +143,25 @@ bool ecs_register_component(ecs_registry_t* reg, uint32_t component_size, id_t c
 	return false;
 }
 
+void* ecs_component_storage(ecs_registry_t* reg, id_t component_id) {
+	ecs_storage_t* storage = hashmap_find(reg->storage_map, &component_id);
+	if (!storage) {
+		return NULL;
+	}
+	return storage_slot_byindex(storage, 0);
+}
+
+uint32_t ecs_component_size(ecs_registry_t* reg, id_t component_id) {
+	ecs_storage_t* storage = hashmap_find(reg->storage_map, &component_id);
+	if (!storage) {
+		return 0;
+	}
+	return storage->slot_size;
+}
+
 id_t ecs_new_entity(ecs_registry_t* reg) {
 	id_t id = reg->next_id++;
+	ecs_debugf("New entity: %lu", id);
 	return id;
 }
 
@@ -153,12 +170,13 @@ void* ecs_add_component(ecs_registry_t* reg, id_t entity_id, id_t component_id) 
 	if (!storage) {
 		return NULL;
 	}
-	void* slot;
-	bool res = storage_emplace(storage, entity_id, &slot);
+	ecs_slot_t* slot;
+	bool res = storage_emplace(storage, entity_id, (void**)&slot);
 	if (!res) {
 		return NULL;
 	}
-	return ((ecs_slot_t*)slot)->data;
+	slot->id = entity_id;
+	return slot->data;
 }
 
 bool ecs_has_component(ecs_registry_t* reg, id_t entity_id, id_t component_id) {
@@ -198,9 +216,9 @@ void ecs_iter_component(ecs_registry_t* reg, id_t component_id, pfn_ecs_iter_com
 	if (!storage) {
 		return;
 	}
-	for (uint32_t i = 0; i < storage->slot_count; i++) {
+	for (uint32_t i = 0; i < storage->next_slot; i++) {
 		ecs_slot_t* slot = (ecs_slot_t*)storage_slot_byindex(storage, i);
-		callback(reg, slot->data);
+		callback(reg, slot->id, slot->data);
 	}
 }
 
