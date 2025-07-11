@@ -1,5 +1,6 @@
 #include "ecs.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -137,7 +138,7 @@ void ecs_cleanup(ecs_registry_t* reg) {
 bool ecs_register_component(ecs_registry_t* reg, uint32_t component_size, id_t component_id, uint32_t init_count) {
 	ecs_storage_t* storage = hashmap_emplace(reg->storage_map, &component_id);
 	if (storage) {
-		storage_create(storage, sizeof(id_t) + component_size, init_count, (reg->next_id + 1) * 2);
+		storage_create(storage, sizeof(id_t) + component_size, init_count, 1024); // TODO: Handle resizing ids array
 		return true;
 	}
 	return false;
@@ -211,7 +212,7 @@ void ecs_remove_component(ecs_registry_t* reg, id_t entity_id, id_t component_id
 	storage_delete(storage, entity_id);
 }
 
-void ecs_iter_component(ecs_registry_t* reg, id_t component_id, pfn_ecs_iter_component_callback callback) {
+void ecs_iter_component(ecs_registry_t* reg, id_t component_id, pfn_ecs_iter_component_func callback) {
 	ecs_storage_t* storage = hashmap_find(reg->storage_map, &component_id);
 	if (!storage) {
 		return;
@@ -220,5 +221,46 @@ void ecs_iter_component(ecs_registry_t* reg, id_t component_id, pfn_ecs_iter_com
 		ecs_slot_t* slot = (ecs_slot_t*)storage_slot_byindex(storage, i);
 		callback(reg, slot->id, slot->data);
 	}
+}
+
+void ecs_system_v(ecs_registry_t* reg, pfn_ecs_iter_func func, uint32_t ncomps, va_list vcomps) {
+	id_t comps[ncomps];
+	ecs_storage_t* pools[ncomps];
+	uint32_t minidx = 0;
+	uint32_t mincount = UINT32_MAX;
+	for (uint32_t i = 0; i < ncomps; i++) {
+		id_t comp = va_arg(vcomps, id_t);
+		ecs_storage_t* pool = hashmap_find(reg->storage_map, &comp);
+		assert(pool);
+		comps[i] = comp; pools[i] = pool;
+		if (pool->next_slot < mincount) {
+			minidx = i; mincount = pool->next_slot;
+		}
+	}
+	if (mincount == 0) {
+		return;
+	}
+	for (uint32_t slot_idx = 0; slot_idx < pools[minidx]->next_slot; slot_idx++) {
+		ecs_slot_t* minslot = (ecs_slot_t*)storage_slot_byindex(pools[minidx], slot_idx);
+		id_t eid = minslot->id;
+		bool has_all = true;
+		for (uint32_t comp_idx = 0; comp_idx < ncomps; comp_idx++) {
+			if (comp_idx == minidx) continue;
+			ecs_slot_t* slot = (ecs_slot_t*)storage_slot_byid(pools[comp_idx], eid);
+			if (!slot) {
+				has_all = false; break;
+			}
+		}
+		if (has_all) {
+			func(reg, eid, ncomps, comps);
+		}
+	}
+}
+
+void ecs_system(ecs_registry_t* reg, pfn_ecs_iter_func func, uint32_t ncomps, ...) {
+	va_list vcomps;
+	va_start(vcomps, ncomps);
+	ecs_system_v(reg, func, ncomps, vcomps);
+	va_end(vcomps);
 }
 

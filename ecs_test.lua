@@ -1,25 +1,29 @@
--- local CMoney = {}
--- CMoney.__index = CMoney
--- CMoney.balance = 0
+local CMoney = {}
+CMoney.__index = CMoney
+CMoney.balance = 0
 
--- function CMoney:Add(amt)
--- 	if self.balance + amt < 0 then
--- 		throw_error("Insufficient funds")
--- 		return
--- 	end
--- 	self.balance = self.balance + amt
--- end
-
--- ecs.RegisterComponent(CMoney, "Money")
-
-for i=1,2 do
-	local e = ecs.CreateEntity()
-	print(e:GetId())
-	e:AddComponent "Position"
+function CMoney:Add(amt)
+	if self.balance + amt < 0 then
+		throw_error("Insufficient funds")
+		return
+	end
+	self.balance = self.balance + amt
 end
 
--- local money = e:AddComponent("Money")
--- print(money)
+function CMoney:Balance(amt)
 
--- money:Add(100)
--- print(money.balance)
+end
+
+ecs.RegisterComponent(CMoney, "Money")
+
+for i=0,16 do
+	local e = ecs.CreateEntity()
+	e:AddComponent "Position"
+	if i % 2 == 0 then
+		local money = e:AddComponent "Money"
+		money:Add(1000 + i * 10)
+	end
+	e:AddComponent "Position"
+	if i % 3 ~= 0 then e:AddComponent("Velocity") end
+end
+

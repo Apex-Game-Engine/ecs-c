@@ -5,7 +5,8 @@
 typedef uint64_t id_t;
 typedef struct ecs_registry_t ecs_registry_t;
 typedef struct ecs_storage_t ecs_storage_t;
-typedef void (*pfn_ecs_iter_component_callback)(ecs_registry_t*, id_t, void*);
+typedef void (*pfn_ecs_iter_component_func)(ecs_registry_t* reg, id_t entity, void* comp);
+typedef void (*pfn_ecs_iter_func)(ecs_registry_t* reg, id_t entity, uint32_t ncomps, id_t* compids);
 
 struct ecs_registry_t {
 	hashmap_t storage_map;
@@ -21,7 +22,8 @@ id_t ecs_new_entity(ecs_registry_t* reg);
 void* ecs_add_component(ecs_registry_t* reg, id_t entity_id, id_t component_id);
 bool ecs_has_component(ecs_registry_t* reg, id_t entity_id, id_t component_id);
 void* ecs_get_component(ecs_registry_t* reg, id_t entity_id, id_t component_id);
-void ecs_iter_component(ecs_registry_t* reg, id_t component_id, pfn_ecs_iter_component_callback callback);
+void ecs_iter_component(ecs_registry_t* reg, id_t component_id, pfn_ecs_iter_component_func callback);
+void ecs_system(ecs_registry_t* reg, pfn_ecs_iter_func func, uint32_t ncomps, ...);
 
 /*     Hashing     */
 #define HASH64_VALUE (0xcbf29ce484222325)

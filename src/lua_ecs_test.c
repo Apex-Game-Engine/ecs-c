@@ -8,7 +8,7 @@
 
 #define nameof(type)    (((type*)0), #type)
 
-#define DEFAULT_ECS_POOL_INIT_COUNT 32
+#define DEFAULT_ECS_POOL_INIT_COUNT 128
 
 typedef struct ecs_entity_t ecs_entity_t;
 
@@ -43,15 +43,24 @@ int lua_ecs_CreateEntity(lua_State* L) {
 int lua_ecs_entity_AddComponent(lua_State* L) {
 	ecs_registry_t* reg = get_ecs_registry_from_lua(L);
 	id_t entity = *(id_t*)luaL_checkudata(L, 1, nameof(ecs_entity_t));
-	printf("AddComponent :: entity = %lu\n", entity);
 	const char* id_str = luaL_checkstring(L, 2);
 	id_t id = hash(id_str);
-	lua_pop(L, 2);
-	int* comp = ecs_add_component(reg, entity, id);
-	lua_newtable(L);
-	luaL_setmetatable(L, nameof(ecs_entity_t));
-	lua_pushvalue(L, -1);
-	*comp = luaL_ref(L, -1);
+	void* comp = ecs_add_component(reg, entity, id);
+	int type = lua_rawget(L, LUA_REGISTRYINDEX);
+	if (type == LUA_TNIL) { // Native component
+		lua_pop(L, 2);
+		// TODO: if there exists a metatable for the native type, then push comp as light user data with that metatable
+		assert(lua_gettop(L) == 0);
+		return 0;
+	}
+	if (type == LUA_TTABLE) { // Lua component
+		lua_newtable(L);
+		lua_insert(L, -2);
+		lua_setmetatable(L, -2);
+		lua_copy(L, -1, -2);
+		int* luacomp = (int*)comp;
+		*luacomp = luaL_ref(L, LUA_REGISTRYINDEX);
+	}
 	assert(lua_gettop(L) == 1);
 	return 1;
 }
@@ -104,9 +113,26 @@ typedef struct { float x, y, z; } Vector3;
 
 #define LUA_CHECK(L, cmd) do { if (LUA_OK != (cmd)) { const char* _err = luaL_checkstring(L, -1); printf("[ERROR] <%s:%d> Lua error : %s\n", __FUNCTION__, __LINE__, _err); } } while (0)
 
+lua_State* L;
+
 void ecs_position_callback(ecs_registry_t* reg, id_t entity, void* comp) {
 	Vector3* pos = (Vector3*)comp;
 	printf("Position : %lu (%f, %f, %f)\n", entity, pos->x, pos->y, pos->z);
+}
+
+void ecs_money_callback(ecs_registry_t* reg, id_t entity, void* comp) {
+	(void)reg; 
+	int refid = *(int*)comp;
+	lua_rawgeti(L, LUA_REGISTRYINDEX, refid);
+	lua_getfield(L, -1, "balance");
+	double balance = luaL_checknumber(L, -1);
+	printf("[Money] Entity (%lu) : %lf\n", entity, balance);
+	lua_pop(L, 2);
+}
+
+void movement_system(ecs_registry_t* reg, id_t entity, uint32_t ncomps, id_t* comps) {
+	(void)reg; (void)ncomps; (void)comps;
+	printf("[Position, Velocity] Entity: %lu\n", entity);
 }
 
 int main() {
@@ -114,8 +140,9 @@ int main() {
 	ecs_init(&reg);
 
 	ecs_register_component(&reg, sizeof(Vector3), hash("Position"), DEFAULT_ECS_POOL_INIT_COUNT);
+	ecs_register_component(&reg, sizeof(Vector3), hash("Velocity"), DEFAULT_ECS_POOL_INIT_COUNT);
 
-	lua_State* L = luaL_newstate();
+	L = luaL_newstate();
 	lua_pushstring(L, nameof(ecs_registry_t));
 	lua_pushlightuserdata(L, &reg);
 	lua_rawset(L, LUA_REGISTRYINDEX);
@@ -126,12 +153,18 @@ int main() {
 	LUA_CHECK(L, luaL_dofile(L, "ecs_test.lua"));
 
 	{
-		// void* comp = ecs_component_storage(&reg, hash("Money"));
-		// assert(comp != NULL);
+		void* comp = ecs_component_storage(&reg, hash("Money"));
+		assert(comp != NULL);
+	}
+
+	if (0) {
+		printf("Movement System : Position, Velocity\n");
+		ecs_system(&reg, movement_system, 2, hash("Position"), hash("Velocity"));
 	}
 
 	{
-		ecs_iter_component(&reg, hash("Position"), ecs_position_callback);
+		// ecs_iter_component(&reg, hash("Position"), ecs_position_callback);
+		ecs_iter_component(&reg, hash("Money"), ecs_money_callback);
 	}
 
 	lua_close(L);
