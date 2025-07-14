@@ -7,15 +7,15 @@ BINDIR=bin
 
 # Compiler flags
 CC=clang-12
-CFLAGS=-std=c99 -Wall -Werror -O2 -I$(SRCDIR) -Iinclude -I/usr/include/lua5.3
+CFLAGS=-std=c99 -g -O0 -Wall -Werror -I$(SRCDIR) -Iinclude -I/usr/include/lua5.3
 LDFLAGS=-lm
 
 # Files
 SOURCES=$(wildcard $(SRCDIR)/*.c)
 OBJECTS=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
 #TARGETS=$(BINDIR)/hashmap_test
-#TARGETS=$(BINDIR)/ecs_test
-TARGETS=$(BINDIR)/lua_ecs_test
+TARGETS=$(BINDIR)/ecs_test
+#TARGETS=$(BINDIR)/lua_ecs_test
 
 .PHONY: all clean run
 
