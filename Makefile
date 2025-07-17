@@ -14,8 +14,8 @@ LDFLAGS=-lm
 SOURCES=$(wildcard $(SRCDIR)/*.c)
 OBJECTS=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
 #TARGETS=$(BINDIR)/hashmap_test
-TARGETS=$(BINDIR)/ecs_test
-#TARGETS=$(BINDIR)/lua_ecs_test
+#TARGETS=$(BINDIR)/ecs_test
+TARGETS=$(BINDIR)/lua_ecs_test
 
 .PHONY: all clean run
 

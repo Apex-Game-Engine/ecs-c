@@ -18,7 +18,6 @@ ecs.RegisterComponent(CMoney, "Money")
 
 for i=0,16 do
 	local e = ecs.CreateEntity()
-	e:AddComponent "Position"
 	if i % 2 == 0 then
 		local money = e:AddComponent "Money"
 		money:Add(1000 + i * 10)

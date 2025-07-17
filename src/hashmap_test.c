@@ -6,11 +6,11 @@
 #define HASH64_VALUE (0xcbf29ce484222325)
 #define HASH64_PRIME (0x100000001b3)
 
-inline uint64_t hash_str_helper(const char* const str, const uint64_t value) {
+uint64_t hash_str_helper(const char* const str, const uint64_t value) {
 	return (str[0] == '\0') ? value : hash_str_helper(&str[1], (value ^ (uint64_t)((uint8_t)str[0])) * HASH64_PRIME);
 }
 
-inline uint64_t hash_str_const(const char* const str) {
+uint64_t hash_str_const(const char* const str) {
 	return hash_str_helper(str, HASH64_VALUE);
 }
 

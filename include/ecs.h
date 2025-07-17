@@ -5,7 +5,6 @@
 typedef struct ecs_id_t ecs_id_t; /* entity and component id */
 typedef struct ecs_ss_t ecs_ss_t; /* sparse set */
 typedef struct ecs_ss_slot_t ecs_ss_slot_t; /* sparse set slot */
-typedef struct ecs_ss_iter_t ecs_ss_iter_t; /* sparse set iterator */
 typedef struct ecs_registry_t ecs_registry_t; /* regsitry */
 typedef enum ecs_result_t ecs_result_t;
 typedef void (*pfn_ecs_iter_component_func)(ecs_registry_t* reg, ecs_id_t entity, void* comp);
@@ -25,7 +24,6 @@ enum ecs_result_t {
 
 struct ecs_id_t { uint32_t id; };
 struct ecs_ss_slot_t { void* data; };
-struct ecs_ss_iter_t { uint32_t idx; };
 
 ecs_ss_t* 		ecs_ss_create(uint32_t slot_size, uint32_t sparse_size, uint32_t dense_size);
 void 			ecs_ss_destroy(ecs_ss_t* ss);
@@ -38,14 +36,8 @@ int 			ecs_ss_insert(ecs_ss_t* ss, ecs_id_t entity_id, ecs_ss_slot_t slot);
 int 			ecs_ss_erase(ecs_ss_t* ss, ecs_id_t entity_id);
 int 			ecs_ss_pop(ecs_ss_t* ss, ecs_id_t entity_id, ecs_ss_slot_t slot);
 
-// --------- BEGIN NOT IMPLEMENTED ---------------
-ecs_ss_iter_t 	ecs_ss_iterbegin(ecs_ss_t* ss);
-ecs_ss_iter_t 	ecs_ss_iternext(ecs_ss_t* ss, ecs_ss_iter_t it);
-void* 			ecs_ss_iterslot(ecs_ss_t* ss, ecs_ss_iter_t it);
-// --------- END NOT IMPLEMENTED ---------------
-
-ecs_id_t* 		ecs_ss_denseids(ecs_ss_t* ss);
-void* 			ecs_ss_denseslots(ecs_ss_t* ss);
+ecs_id_t 		ecs_ss_getid(ecs_ss_t* ss, uint32_t idx);
+ecs_ss_slot_t  	ecs_ss_getslot(ecs_ss_t* ss, uint32_t idx);
 
 ecs_registry_t* ecs_init();
 void 			ecs_cleanup(ecs_registry_t* reg);

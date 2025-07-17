@@ -144,14 +144,14 @@ int ecs_ss_pop(ecs_ss_t* ss, ecs_id_t entity_id, ecs_ss_slot_t slot) {
 	return ECS_OK;
 }
 
-ecs_id_t* ecs_ss_denseids(ecs_ss_t* ss)
+ecs_id_t ecs_ss_getid(ecs_ss_t* ss, uint32_t idx)
 {
-	return ss->dense_ids;
+	return ss->dense_ids[idx];
 }
 
-void* ecs_ss_denseslots(ecs_ss_t* ss)
+ecs_ss_slot_t ecs_ss_getslot(ecs_ss_t* ss, uint32_t idx)
 {
-	return ss->dense_slots;
+	return (ecs_ss_slot_t) { ecs_ss_slotbyidx(ss, idx) };
 }
 
 /********************************************************************
@@ -257,8 +257,8 @@ void ecs_iter_component(ecs_registry_t* reg, ecs_id_t component_id, pfn_ecs_iter
 		return;
 	}
 	for (uint32_t i = 0; i < storage->slot_count; i++) {
-		ecs_id_t id = { i };
-		ecs_ss_slot_t slot = ecs_ss_get(storage, id);
+		ecs_id_t id = ecs_ss_getid(storage, i);
+		ecs_ss_slot_t slot = ecs_ss_getslot(storage, i);
 		callback(reg, id, slot.data);
 	}
 }
